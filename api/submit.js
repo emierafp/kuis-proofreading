@@ -1,28 +1,32 @@
-import { google } from 'googleapis';
-
-export default async function handler(req, res) {
+const { google } = require('googleapis');
+ 
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
+ 
   try {
     const { name, kelas, score, correct, wrong, total, timestamp } = req.body;
-
+ 
     if (!name || !kelas || score === undefined) {
       return res.status(400).json({ error: 'Data tidak lengkap' });
     }
-
+ 
+    const privateKey = process.env.GOOGLE_PRIVATE_KEY
+      ? process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n')
+      : undefined;
+ 
     const auth = new google.auth.GoogleAuth({
       credentials: {
         client_email: process.env.GOOGLE_CLIENT_EMAIL,
-        private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        private_key: privateKey,
       },
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
-
+ 
     const sheets = google.sheets({ version: 'v4', auth });
     const spreadsheetId = process.env.GOOGLE_SHEET_ID;
-
+ 
     await sheets.spreadsheets.values.append({
       spreadsheetId,
       range: 'Sheet1!A:H',
@@ -31,10 +35,10 @@ export default async function handler(req, res) {
         values: [[name, kelas, score, correct, wrong, total, timestamp]],
       },
     });
-
+ 
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error('Submit error:', error);
-    return res.status(500).json({ error: 'Gagal menyimpan data' });
+    console.error('Submit error:', error.message);
+    return res.status(500).json({ error: error.message });
   }
 }
