@@ -1,17 +1,11 @@
 const { google } = require('googleapis');
  
 module.exports = async function handler(req, res) {
-  if (req.method !== 'POST') {
+  if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
  
   try {
-    const { name, kelas, score, correct, wrong, total, timestamp } = req.body;
- 
-    if (!name || !kelas || score === undefined) {
-      return res.status(400).json({ error: 'Data tidak lengkap' });
-    }
- 
     const privateKey = process.env.GOOGLE_PRIVATE_KEY
       ? process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n')
       : undefined;
@@ -21,24 +15,36 @@ module.exports = async function handler(req, res) {
         client_email: process.env.GOOGLE_CLIENT_EMAIL,
         private_key: privateKey,
       },
-      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
     });
  
     const sheets = google.sheets({ version: 'v4', auth });
     const spreadsheetId = process.env.GOOGLE_SHEET_ID;
  
-    await sheets.spreadsheets.values.append({
+    const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range: 'Sheet1!A:H',
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [[name, kelas, score, correct, wrong, total, timestamp]],
-      },
     });
  
-    return res.status(200).json({ success: true });
+    const rows = response.data.values || [];
+    const dataRows = rows[0]?.[0] === 'Nama' ? rows.slice(1) : rows;
+ 
+    const data = dataRows
+      .filter(row => row.length >= 4)
+      .map(row => ({
+        name:      row[0] || '',
+        kelas:     row[1] || '',
+        score:     Number(row[2]) || 0,
+        correct:   Number(row[3]) || 0,
+        wrong:     Number(row[4]) || 0,
+        total:     Number(row[5]) || 10,
+        timestamp: row[6] || '',
+      }))
+      .reverse();
+ 
+    return res.status(200).json({ data });
   } catch (error) {
-    console.error('Submit error:', error.message);
+    console.error('Results error:', error.message);
     return res.status(500).json({ error: error.message });
   }
 }
