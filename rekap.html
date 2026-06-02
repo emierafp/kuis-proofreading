@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rekap Nilai — Kuis Informatika</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #F7F5F0;
+      --surface: #FFFFFF;
+      --ink: #1A1A18;
+      --ink-muted: #6B6B63;
+      --accent: #2D6A4F;
+      --accent-light: #D8EDDF;
+      --danger: #C1392B;
+      --danger-light: #FDECEA;
+      --border: #E5E3DC;
+      --shadow: 0 2px 16px rgba(0,0,0,0.07);
+      --radius: 14px;
+    }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 40px 16px 80px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 36px;
+      animation: fadeDown 0.6s ease both;
+    }
+    .header-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-light);
+      border-radius: 100px;
+      padding: 5px 14px;
+      margin-bottom: 14px;
+    }
+    .header h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(26px, 4vw, 38px);
+      margin-bottom: 6px;
+    }
+    .header p { font-size: 14px; color: var(--ink-muted); font-weight: 300; }
+
+    .container { max-width: 860px; margin: 0 auto; }
+
+    /* Summary Cards */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+      animation: fadeUp 0.5s ease both;
+    }
+    @media (max-width: 600px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } }
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px 16px;
+      text-align: center;
+    }
+    .sum-val {
+      font-family: 'DM Serif Display', serif;
+      font-size: 28px;
+      color: var(--ink);
+    }
+    .sum-lbl {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-muted);
+      margin-top: 4px;
+    }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+      align-items: center;
+      flex-wrap: wrap;
+      animation: fadeUp 0.5s ease both;
+      animation-delay: 0.05s;
+    }
+    .toolbar input {
+      flex: 1;
+      min-width: 180px;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      background: var(--surface);
+      color: var(--ink);
+      outline: none;
+    }
+    .toolbar input:focus { border-color: var(--accent); }
+    .toolbar select {
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      background: var(--surface);
+      color: var(--ink);
+      cursor: pointer;
+      outline: none;
+    }
+    .btn-refresh {
+      padding: 10px 18px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: var(--surface);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+      cursor: pointer;
+      transition: all 0.18s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .btn-refresh:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Table Card */
+    .table-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      animation: fadeUp 0.5s ease both;
+      animation-delay: 0.1s;
+    }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead tr {
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      padding: 12px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--ink-muted);
+      text-align: left;
+      white-space: nowrap;
+    }
+    td {
+      padding: 13px 16px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: var(--bg); }
+
+    .rank-badge {
+      width: 26px; height: 26px;
+      border-radius: 7px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--ink-muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .rank-badge.top { background: #FFF7E0; border-color: #F4C430; color: #8B6914; }
+
+    .score-pill {
+      display: inline-block;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 4px 12px;
+      border-radius: 100px;
+    }
+    .score-pill.lulus { background: var(--accent-light); color: var(--accent); }
+    .score-pill.tidak { background: var(--danger-light); color: var(--danger); }
+
+    .bar-cell { min-width: 120px; }
+    .mini-bar {
+      height: 6px;
+      background: var(--border);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+    .mini-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 100px;
+      transition: width 0.6s ease;
+    }
+
+    /* Empty / Loading */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--ink-muted);
+    }
+    .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; }
+
+    .loading-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--ink-muted);
+    }
+    .spinner {
+      width: 30px; height: 30px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-muted);
+      text-decoration: none;
+      margin-bottom: 24px;
+      transition: color 0.18s;
+    }
+    .back-link:hover { color: var(--accent); }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <a href="/" class="back-link">← Kembali ke Kuis</a>
+
+  <div class="header">
+    <div class="header-badge">Dashboard Guru</div>
+    <h1>Rekap Nilai Siswa</h1>
+    <p>Semua hasil kuis tersimpan secara real-time</p>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary-grid">
+    <div class="summary-card">
+      <div class="sum-val" id="sum-total">—</div>
+      <div class="sum-lbl">Peserta</div>
+    </div>
+    <div class="summary-card">
+      <div class="sum-val" id="sum-avg">—</div>
+      <div class="sum-lbl">Rata-rata</div>
+    </div>
+    <div class="summary-card">
+      <div class="sum-val" id="sum-lulus">—</div>
+      <div class="sum-lbl">Lulus</div>
+    </div>
+    <div class="summary-card">
+      <div class="sum-val" id="sum-tertinggi">—</div>
+      <div class="sum-lbl">Nilai Tertinggi</div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <input type="text" id="search-input" placeholder="🔍  Cari nama siswa..." />
+    <select id="filter-status">
+      <option value="">Semua Status</option>
+      <option value="lulus">Lulus (≥70)</option>
+      <option value="tidak">Tidak Lulus (&lt;70)</option>
+    </select>
+    <select id="sort-select">
+      <option value="newest">Terbaru</option>
+      <option value="highest">Nilai Tertinggi</option>
+      <option value="lowest">Nilai Terendah</option>
+      <option value="name">Nama A–Z</option>
+    </select>
+    <button class="btn-refresh" id="btn-refresh">
+      <span id="refresh-icon">↻</span> Refresh
+    </button>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <div class="table-wrap">
+      <table id="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nama Siswa</th>
+            <th>Kelas</th>
+            <th>Nilai</th>
+            <th>Benar</th>
+            <th>Progres</th>
+            <th>Status</th>
+            <th>Waktu</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td colspan="8">
+            <div class="loading-state">
+              <div class="spinner"></div>
+              <p>Memuat data...</p>
+            </div>
+          </td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let allData = [];
+
+async function fetchData() {
+  const icon = document.getElementById('refresh-icon');
+  icon.style.animation = 'spin 0.6s linear infinite';
+  try {
+    const res = await fetch('/api/results');
+    const json = await res.json();
+    allData = json.data || [];
+    renderSummary();
+    renderTable();
+  } catch (e) {
+    document.getElementById('table-body').innerHTML = `
+      <tr><td colspan="8">
+        <div class="empty-state">
+          <div class="icon">⚠️</div>
+          <p>Gagal memuat data. Periksa konfigurasi API.</p>
+        </div>
+      </td></tr>`;
+  } finally {
+    icon.style.animation = '';
+  }
+}
+
+function renderSummary() {
+  if (!allData.length) return;
+  const scores = allData.map(d => Number(d.score));
+  const avg = Math.round(scores.reduce((a,b) => a+b, 0) / scores.length);
+  const lulus = scores.filter(s => s >= 70).length;
+  const max = Math.max(...scores);
+  document.getElementById('sum-total').textContent = allData.length;
+  document.getElementById('sum-avg').textContent = avg;
+  document.getElementById('sum-lulus').textContent = lulus;
+  document.getElementById('sum-tertinggi').textContent = max;
+}
+
+function renderTable() {
+  const search = document.getElementById('search-input').value.toLowerCase();
+  const filterStatus = document.getElementById('filter-status').value;
+  const sort = document.getElementById('sort-select').value;
+
+  let data = [...allData];
+
+  if (search) data = data.filter(d => d.name.toLowerCase().includes(search) || d.kelas.toLowerCase().includes(search));
+  if (filterStatus === 'lulus') data = data.filter(d => Number(d.score) >= 70);
+  if (filterStatus === 'tidak') data = data.filter(d => Number(d.score) < 70);
+
+  if (sort === 'highest') data.sort((a,b) => Number(b.score) - Number(a.score));
+  else if (sort === 'lowest') data.sort((a,b) => Number(a.score) - Number(b.score));
+  else if (sort === 'name') data.sort((a,b) => a.name.localeCompare(b.name));
+  // newest: default order from sheets
+
+  const tbody = document.getElementById('table-body');
+  if (!data.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="icon">📭</div><p>Belum ada data yang cocok.</p></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = data.map((d, i) => {
+    const score = Number(d.score);
+    const isLulus = score >= 70;
+    const isTop = i === 0 && sort === 'highest';
+    return `
+      <tr>
+        <td><span class="rank-badge ${isTop ? 'top' : ''}">${i+1}</span></td>
+        <td><strong>${d.name}</strong></td>
+        <td style="color:var(--ink-muted)">${d.kelas}</td>
+        <td><span class="score-pill ${isLulus ? 'lulus' : 'tidak'}">${score}</span></td>
+        <td style="color:var(--ink-muted)">${d.correct}/${d.total}</td>
+        <td class="bar-cell">
+          <div class="mini-bar"><div class="mini-bar-fill" style="width:${score}%"></div></div>
+        </td>
+        <td>
+          ${isLulus
+            ? `<span style="color:var(--accent);font-size:12px;font-weight:600">✓ Lulus</span>`
+            : `<span style="color:var(--danger);font-size:12px;font-weight:600">✗ Belum</span>`}
+        </td>
+        <td style="color:var(--ink-muted);font-size:12px;white-space:nowrap">${d.timestamp || '—'}</td>
+      </tr>`;
+  }).join('');
+}
+
+document.getElementById('btn-refresh').addEventListener('click', fetchData);
+document.getElementById('search-input').addEventListener('input', renderTable);
+document.getElementById('filter-status').addEventListener('change', renderTable);
+document.getElementById('sort-select').addEventListener('change', renderTable);
+
+fetchData();
+setInterval(fetchData, 30000); // auto-refresh tiap 30 detik
+</script>
+</body>
+</html>

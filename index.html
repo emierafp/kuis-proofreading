@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kuis Proofreading</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #F7F5F0;
+      --surface: #FFFFFF;
+      --ink: #1A1A18;
+      --ink-muted: #6B6B63;
+      --accent: #2D6A4F;
+      --accent-light: #D8EDDF;
+      --accent-hover: #1B4332;
+      --danger: #C1392B;
+      --danger-light: #FDECEA;
+      --border: #E5E3DC;
+      --shadow: 0 2px 16px rgba(0,0,0,0.07);
+      --radius: 14px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 40px 16px 80px;
+    }
+
+    /* ── Header ── */
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      animation: fadeDown 0.6s ease both;
+    }
+    .header-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-light);
+      border-radius: 100px;
+      padding: 5px 14px;
+      margin-bottom: 14px;
+    }
+    .header h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(28px, 5vw, 44px);
+      line-height: 1.15;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+    .header p {
+      font-size: 15px;
+      color: var(--ink-muted);
+      font-weight: 300;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      max-width: 680px;
+      margin: 0 auto 20px;
+      padding: 28px;
+      animation: fadeUp 0.5s ease both;
+    }
+
+    /* ── Identity Form ── */
+    #identity-screen { animation-delay: 0.1s; }
+    .identity-screen-inner { max-width: 400px; margin: 0 auto; text-align: center; padding: 16px 0; }
+    .identity-icon {
+      width: 64px; height: 64px;
+      background: var(--accent-light);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 28px;
+    }
+    .identity-screen-inner h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 22px;
+      margin-bottom: 6px;
+    }
+    .identity-screen-inner p {
+      font-size: 14px;
+      color: var(--ink-muted);
+      margin-bottom: 24px;
+    }
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin-bottom: 8px;
+    }
+    .field input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      background: var(--bg);
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.2s;
+      margin-bottom: 12px;
+    }
+    .field input:focus { border-color: var(--accent); }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      padding: 13px 28px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(45,106,79,0.3); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* ── Progress Bar ── */
+    .progress-wrap {
+      max-width: 680px;
+      margin: 0 auto 16px;
+      animation: fadeUp 0.5s ease both;
+      animation-delay: 0.05s;
+    }
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--ink-muted);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    .progress-bar {
+      height: 5px;
+      background: var(--border);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 100px;
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ── Question Card ── */
+    .q-number {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .q-text {
+      font-family: 'DM Serif Display', serif;
+      font-size: 18px;
+      line-height: 1.5;
+      color: var(--ink);
+      margin-bottom: 22px;
+    }
+    .options { display: flex; flex-direction: column; gap: 10px; }
+    .option {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 13px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.18s;
+      background: var(--bg);
+      user-select: none;
+    }
+    .option:hover { border-color: var(--accent); background: var(--accent-light); }
+    .option.selected { border-color: var(--accent); background: var(--accent-light); }
+    .option.selected .opt-letter { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .option.correct { border-color: var(--accent); background: var(--accent-light); }
+    .option.correct .opt-letter { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .option.wrong { border-color: var(--danger); background: var(--danger-light); }
+    .option.wrong .opt-letter { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .option.disabled { pointer-events: none; }
+    .opt-letter {
+      width: 32px; height: 32px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink-muted);
+      flex-shrink: 0;
+      transition: all 0.18s;
+      background: var(--surface);
+    }
+    .opt-text { font-size: 14px; line-height: 1.5; color: var(--ink); }
+
+    /* ── Navigation ── */
+    .q-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 22px;
+      gap: 12px;
+    }
+    .btn-nav {
+      flex: 1;
+      padding: 11px 20px;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      color: var(--ink);
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+    .btn-nav:hover { border-color: var(--ink); }
+    .btn-nav:disabled { opacity: 0.3; cursor: not-allowed; }
+    .btn-submit {
+      flex: 1;
+      padding: 11px 20px;
+      border-radius: 10px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.18s;
+    }
+    .btn-submit:hover { background: var(--accent-hover); }
+    .btn-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Question Dots ── */
+    .q-dots {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      max-width: 680px;
+      margin: 0 auto 16px;
+      animation: fadeUp 0.5s ease both;
+      animation-delay: 0.1s;
+    }
+    .q-dot {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink-muted);
+      cursor: pointer;
+      transition: all 0.18s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .q-dot:hover { border-color: var(--accent); color: var(--accent); }
+    .q-dot.answered { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+    .q-dot.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* ── Result Screen ── */
+    #result-screen { display: none; }
+    .result-hero {
+      text-align: center;
+      padding: 12px 0 28px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+    }
+    .score-ring {
+      position: relative;
+      width: 110px; height: 110px;
+      margin: 0 auto 16px;
+    }
+    .score-ring svg { transform: rotate(-90deg); }
+    .score-ring-bg { fill: none; stroke: var(--border); stroke-width: 6; }
+    .score-ring-fill {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-dasharray: 283;
+      stroke-dashoffset: 283;
+      transition: stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1) 0.3s;
+    }
+    .score-ring-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .score-ring-text .score-val {
+      font-family: 'DM Serif Display', serif;
+      font-size: 28px;
+      line-height: 1;
+      color: var(--ink);
+    }
+    .score-ring-text .score-lbl {
+      font-size: 10px;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+    .result-name {
+      font-family: 'DM Serif Display', serif;
+      font-size: 22px;
+      margin-bottom: 6px;
+    }
+    .result-verdict {
+      display: inline-block;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 14px;
+      border-radius: 100px;
+      margin-top: 8px;
+    }
+    .result-verdict.lulus { background: var(--accent-light); color: var(--accent); }
+    .result-verdict.tidak-lulus { background: var(--danger-light); color: var(--danger); }
+
+    .result-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat-box {
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 14px 10px;
+      text-align: center;
+    }
+    .stat-box .stat-val {
+      font-family: 'DM Serif Display', serif;
+      font-size: 22px;
+      color: var(--ink);
+    }
+    .stat-box .stat-lbl {
+      font-size: 11px;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .review-title {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin-bottom: 14px;
+    }
+    .review-item {
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .review-item:last-child { border-bottom: none; }
+    .review-q {
+      font-size: 14px;
+      color: var(--ink);
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+    .review-answers { display: flex; gap: 8px; flex-wrap: wrap; }
+    .review-tag {
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+    .review-tag.user-correct { background: var(--accent-light); color: var(--accent); }
+    .review-tag.user-wrong { background: var(--danger-light); color: var(--danger); }
+    .review-tag.correct-ans { background: var(--accent-light); color: var(--accent); border: 1px solid var(--accent); }
+
+    /* ── Saving overlay ── */
+    .saving-bar {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--ink);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 11px 22px;
+      border-radius: 100px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+      z-index: 999;
+    }
+    .saving-bar.show { transform: translateX(-50%) translateY(0); }
+    .saving-spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-badge">Kuis Business Writing</div>
+  <h1>Uji Pemahamanmu</h1>
+  <p>Basic & Advanced Proofreading · 10 soal pilihan ganda</p>
+</div>
+
+<!-- Identity Screen -->
+<div class="card" id="identity-screen">
+  <div class="identity-screen-inner">
+    <div class="identity-icon">✏️</div>
+    <h2>Halo, Siapa Kamu?</h2>
+    <p>Masukkan nama dan kelasmu sebelum memulai kuis.</p>
+    <div class="field">
+      <label>Nama Lengkap</label>
+      <input type="text" id="input-name" placeholder="Contoh: Budi Santoso" />
+      <label>Kelas</label>
+      <input type="text" id="input-class" placeholder="Contoh: XII IPA 1" />
+    </div>
+    <button class="btn btn-primary" id="btn-start">Mulai Kuis →</button>
+  </div>
+</div>
+
+<!-- Quiz Section -->
+<div id="quiz-section" class="hidden">
+
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-meta">
+      <span id="prog-label">Soal 1 dari 10</span>
+      <span id="prog-pct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+
+  <!-- Question Dots -->
+  <div class="q-dots" id="q-dots"></div>
+
+  <!-- Question Card -->
+  <div class="card" id="question-card">
+    <div class="q-number" id="q-number">Soal 1</div>
+    <div class="q-text" id="q-text"></div>
+    <div class="options" id="options"></div>
+    <div class="q-nav">
+      <button class="btn-nav" id="btn-prev">← Sebelumnya</button>
+      <button class="btn-nav" id="btn-next">Berikutnya →</button>
+      <button class="btn-submit hidden" id="btn-submit">Selesai & Kirim ✓</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Result Screen -->
+<div class="card hidden" id="result-screen">
+  <div class="result-hero">
+    <div class="score-ring">
+      <svg viewBox="0 0 100 100" width="110" height="110">
+        <circle class="score-ring-bg" cx="50" cy="50" r="45" />
+        <circle class="score-ring-fill" id="ring-fill" cx="50" cy="50" r="45" />
+      </svg>
+      <div class="score-ring-text">
+        <span class="score-val" id="res-score">0</span>
+        <span class="score-lbl">Nilai</span>
+      </div>
+    </div>
+    <div class="result-name" id="res-name"></div>
+    <div style="font-size:13px;color:var(--ink-muted)" id="res-class"></div>
+    <div class="result-verdict" id="res-verdict"></div>
+  </div>
+
+  <div class="result-stats">
+    <div class="stat-box">
+      <div class="stat-val" id="stat-benar">0</div>
+      <div class="stat-lbl">Benar</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="stat-salah">0</div>
+      <div class="stat-lbl">Salah</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val" id="stat-total">10</div>
+      <div class="stat-lbl">Total Soal</div>
+    </div>
+  </div>
+
+  <div class="review-title">Pembahasan Jawaban</div>
+  <div id="review-list"></div>
+</div>
+
+<!-- Saving Bar -->
+<div class="saving-bar" id="saving-bar">
+  <div class="saving-spinner" id="saving-spinner"></div>
+  <span id="saving-text">Menyimpan nilai...</span>
+</div>
+
+<script>
+const QUESTIONS = [
+  {
+    q: "Apa definisi proofreading dalam penulisan bisnis?",
+    options: [
+      "Proses menulis ulang dokumen dari awal",
+      "Proses memeriksa kesalahan teknis penulisan sebelum publikasi",
+      "Proses menerjemahkan dokumen ke bahasa lain",
+      "Proses mencetak dan mendistribusikan dokumen"
+    ],
+    answer: 1
+  },
+  {
+    q: "Manakah dampak buruk dari proofreading yang buruk?",
+    options: [
+      "Dokumen menjadi terlalu panjang",
+      "Mengurangi profesionalisme dan merusak kredibilitas brand",
+      "Membuat tulisan terlalu formal",
+      "Memperlambat proses pengiriman email"
+    ],
+    answer: 1
+  },
+  {
+    q: "Kalimat mana yang lebih efektif dalam penulisan bisnis?",
+    options: [
+      "We are writing this email in order to inform you regarding the delay.",
+      "We are informing you about the delay.",
+      "This email is being written by us to inform regarding delay matters.",
+      "Delay information is what we want to tell you about."
+    ],
+    answer: 1
+  },
+  {
+    q: "Manakah yang BUKAN termasuk aspek yang perlu diperiksa dalam consistency check?",
+    options: [
+      "Dates (tanggal)",
+      "Font styles",
+      "Jumlah halaman dokumen",
+      "Tone of voice"
+    ],
+    answer: 2
+  },
+  {
+    q: "Manakah koreksi yang tepat untuk kalimat: \"Our company are committed to provide the best services for all client.\"",
+    options: [
+      "Our company is committed to providing the best services for all clients.",
+      "Our company are committed to provides the best services for all clients.",
+      "Our company is committed to provide the best services for all client.",
+      "Our company were committed to providing the best services for all clients."
+    ],
+    answer: 0
+  },
+  {
+    q: "Apa perbedaan utama antara basic proofreading dan advanced proofreading?",
+    options: [
+      "Advanced proofreading hanya fokus pada ejaan dan tata bahasa",
+      "Advanced proofreading mencakup tone, readability, audience suitability, dan brand consistency",
+      "Basic proofreading lebih sulit dari advanced proofreading",
+      "Advanced proofreading dilakukan secara otomatis oleh AI"
+    ],
+    answer: 1
+  },
+  {
+    q: "Manakah versi kalimat yang lebih profesional dari \"You failed to submit the report.\"?",
+    options: [
+      "You did not submit the report as required.",
+      "The report has not been submitted yet.",
+      "Submit the report immediately.",
+      "Why haven't you submitted the report?"
+    ],
+    answer: 1
+  },
+  {
+    q: "Apa yang dimaksud dengan structural editing dalam advanced proofreading?",
+    options: [
+      "Memeriksa format file dan ukuran dokumen",
+      "Mengubah font dan warna teks agar konsisten",
+      "Mempersingkat paragraf, memperbaiki transisi, dan menghilangkan pengulangan yang tidak perlu",
+      "Menambahkan gambar dan tabel ke dalam dokumen"
+    ],
+    answer: 2
+  },
+  {
+    q: "Manakah pernyataan yang BENAR tentang penggunaan AI dalam proofreading?",
+    options: [
+      "AI dapat sepenuhnya menggantikan editor manusia",
+      "AI tidak bisa membantu proses proofreading sama sekali",
+      "AI dapat membantu mendeteksi kesalahan grammar, tetapi human judgment tetap penting",
+      "AI selalu lebih akurat daripada manusia dalam memahami konteks tulisan"
+    ],
+    answer: 2
+  },
+  {
+    q: "Versi revisi yang paling tepat dari kalimat \"We would like to take this opportunity to sincerely express our deepest gratitude for your continued support and cooperation throughout this partnership.\" adalah...",
+    options: [
+      "We sincerely express our gratitude for your support and cooperation.",
+      "Thank you for your continued support.",
+      "We are grateful for everything you have done for this partnership.",
+      "Your support and cooperation is greatly appreciated by our team."
+    ],
+    answer: 1
+  }
+];
+
+const letters = ['A','B','C','D'];
+let currentQ = 0;
+let answers = new Array(QUESTIONS.length).fill(null);
+let studentName = '', studentClass = '';
+let submitted = false;
+
+// Start
+document.getElementById('btn-start').addEventListener('click', () => {
+  const name = document.getElementById('input-name').value.trim();
+  const cls  = document.getElementById('input-class').value.trim();
+  if (!name || !cls) { alert('Nama dan kelas wajib diisi!'); return; }
+  studentName = name;
+  studentClass = cls;
+  document.getElementById('identity-screen').classList.add('hidden');
+  document.getElementById('quiz-section').classList.remove('hidden');
+  buildDots();
+  renderQuestion();
+});
+
+function buildDots() {
+  const wrap = document.getElementById('q-dots');
+  wrap.innerHTML = '';
+  QUESTIONS.forEach((_, i) => {
+    const d = document.createElement('button');
+    d.className = 'q-dot' + (i === 0 ? ' active' : '');
+    d.textContent = i + 1;
+    d.addEventListener('click', () => { currentQ = i; renderQuestion(); });
+    wrap.appendChild(d);
+  });
+}
+
+function updateDots() {
+  document.querySelectorAll('.q-dot').forEach((d, i) => {
+    d.className = 'q-dot';
+    if (answers[i] !== null) d.classList.add('answered');
+    if (i === currentQ) d.classList.add('active');
+  });
+}
+
+function renderQuestion() {
+  const q = QUESTIONS[currentQ];
+  document.getElementById('q-number').textContent = `Soal ${currentQ + 1}`;
+  document.getElementById('q-text').textContent = q.q;
+
+  const optsEl = document.getElementById('options');
+  optsEl.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const div = document.createElement('div');
+    div.className = 'option' + (answers[currentQ] === i ? ' selected' : '');
+    div.innerHTML = `<span class="opt-letter">${letters[i]}</span><span class="opt-text">${opt}</span>`;
+    div.addEventListener('click', () => selectAnswer(i));
+    optsEl.appendChild(div);
+  });
+
+  // Progress
+  const answered = answers.filter(a => a !== null).length;
+  const pct = Math.round((answered / QUESTIONS.length) * 100);
+  document.getElementById('prog-label').textContent = `Soal ${currentQ + 1} dari ${QUESTIONS.length}`;
+  document.getElementById('prog-pct').textContent = `${pct}% selesai`;
+  document.getElementById('progress-fill').style.width = pct + '%';
+
+  // Nav buttons
+  document.getElementById('btn-prev').disabled = currentQ === 0;
+  const isLast = currentQ === QUESTIONS.length - 1;
+  document.getElementById('btn-next').classList.toggle('hidden', isLast);
+  document.getElementById('btn-submit').classList.toggle('hidden', !isLast);
+
+  const allAnswered = answers.every(a => a !== null);
+  document.getElementById('btn-submit').disabled = !allAnswered;
+
+  updateDots();
+}
+
+function selectAnswer(i) {
+  if (submitted) return;
+  answers[currentQ] = i;
+  renderQuestion();
+}
+
+document.getElementById('btn-prev').addEventListener('click', () => { if (currentQ > 0) { currentQ--; renderQuestion(); } });
+document.getElementById('btn-next').addEventListener('click', () => { if (currentQ < QUESTIONS.length - 1) { currentQ++; renderQuestion(); } });
+document.getElementById('btn-submit').addEventListener('click', submitQuiz);
+
+function submitQuiz() {
+  const allAnswered = answers.every(a => a !== null);
+  if (!allAnswered) { alert('Jawab semua soal terlebih dahulu!'); return; }
+  submitted = true;
+
+  let correct = 0;
+  answers.forEach((a, i) => { if (a === QUESTIONS[i].answer) correct++; });
+  const score = Math.round((correct / QUESTIONS.length) * 100);
+
+  // Hide quiz, show result
+  document.getElementById('quiz-section').classList.add('hidden');
+  const resultEl = document.getElementById('result-screen');
+  resultEl.classList.remove('hidden');
+  resultEl.style.animation = 'fadeUp 0.5s ease both';
+
+  // Fill result
+  document.getElementById('res-name').textContent = studentName;
+  document.getElementById('res-class').textContent = studentClass;
+  document.getElementById('res-score').textContent = score;
+  document.getElementById('stat-benar').textContent = correct;
+  document.getElementById('stat-salah').textContent = QUESTIONS.length - correct;
+
+  const verdict = document.getElementById('res-verdict');
+  if (score >= 70) {
+    verdict.textContent = '🎉 Lulus'; verdict.className = 'result-verdict lulus';
+  } else {
+    verdict.textContent = '📚 Perlu Belajar Lagi'; verdict.className = 'result-verdict tidak-lulus';
+  }
+
+  // Animate ring
+  const circumference = 2 * Math.PI * 45;
+  const offset = circumference - (score / 100) * circumference;
+  setTimeout(() => {
+    document.getElementById('ring-fill').style.strokeDashoffset = offset;
+  }, 100);
+
+  // Review
+  const reviewEl = document.getElementById('review-list');
+  reviewEl.innerHTML = '';
+  QUESTIONS.forEach((q, i) => {
+    const userAns = answers[i];
+    const correct_ans = q.answer;
+    const isCorrect = userAns === correct_ans;
+    const div = document.createElement('div');
+    div.className = 'review-item';
+    div.innerHTML = `
+      <div class="review-q">${i+1}. ${q.q}</div>
+      <div class="review-answers">
+        <span class="review-tag ${isCorrect ? 'user-correct' : 'user-wrong'}">
+          Jawabanmu: ${letters[userAns]} — ${q.options[userAns]}
+        </span>
+        ${!isCorrect ? `<span class="review-tag correct-ans">Jawaban benar: ${letters[correct_ans]} — ${q.options[correct_ans]}</span>` : ''}
+      </div>`;
+    reviewEl.appendChild(div);
+  });
+
+  // Save to Google Sheets
+  saveResult(studentName, studentClass, score, correct);
+}
+
+async function saveResult(name, kelas, score, correct) {
+  const bar = document.getElementById('saving-bar');
+  const spinner = document.getElementById('saving-spinner');
+  const text = document.getElementById('saving-text');
+  bar.classList.add('show');
+
+  try {
+    const res = await fetch('/api/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name, kelas, score, correct,
+        wrong: QUESTIONS.length - correct,
+        total: QUESTIONS.length,
+        timestamp: new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })
+      })
+    });
+    if (res.ok) {
+      spinner.style.display = 'none';
+      text.textContent = '✓ Nilai berhasil disimpan!';
+      setTimeout(() => bar.classList.remove('show'), 3000);
+    } else {
+      throw new Error();
+    }
+  } catch {
+    spinner.style.display = 'none';
+    text.textContent = '⚠ Gagal menyimpan. Cek koneksi.';
+    setTimeout(() => bar.classList.remove('show'), 4000);
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "kuis-informatika",
+  "version": "1.0.0",
+  "description": "Aplikasi kuis informatika dengan rekap nilai via Google Sheets",
+  "private": true,
+  "dependencies": {
+    "googleapis": "^144.0.0"
+  }
+}
