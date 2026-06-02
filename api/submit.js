@@ -1,50 +1,38 @@
 const { google } = require('googleapis');
- 
+
 module.exports = async function handler(req, res) {
-  if (req.method !== 'GET') {
+  if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
- 
+
   try {
+    const { name, kelas, score, correct, wrong, total, timestamp } = req.body;
+
     const privateKey = process.env.GOOGLE_PRIVATE_KEY
       ? process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n')
       : undefined;
- 
+
     const auth = new google.auth.GoogleAuth({
       credentials: {
         client_email: process.env.GOOGLE_CLIENT_EMAIL,
         private_key: privateKey,
       },
-      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+      scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
- 
+
     const sheets = google.sheets({ version: 'v4', auth });
-    const spreadsheetId = process.env.GOOGLE_SHEET_ID;
- 
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.GOOGLE_SHEET_ID,
       range: 'Sheet1!A:H',
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [[name, kelas, score, correct, wrong, total, timestamp]],
+      },
     });
- 
-    const rows = response.data.values || [];
-    const dataRows = rows[0]?.[0] === 'Nama' ? rows.slice(1) : rows;
- 
-    const data = dataRows
-      .filter(row => row.length >= 4)
-      .map(row => ({
-        name:      row[0] || '',
-        kelas:     row[1] || '',
-        score:     Number(row[2]) || 0,
-        correct:   Number(row[3]) || 0,
-        wrong:     Number(row[4]) || 0,
-        total:     Number(row[5]) || 10,
-        timestamp: row[6] || '',
-      }))
-      .reverse();
- 
-    return res.status(200).json({ data });
+
+    return res.status(200).json({ success: true });
   } catch (error) {
-    console.error('Results error:', error.message);
     return res.status(500).json({ error: error.message });
   }
 }
