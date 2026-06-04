@@ -482,7 +482,7 @@
   <div class="identity-screen-inner">
     <div class="identity-icon">✏️</div>
     <h2>Halo, Siapa Kamu?</h2>
-    <p>Masukkan nama dan kelasmu sebelum memulai kuis.<br><strong style="color: var(--danger)">PERINGATAN: Kuis ini dilengkapi fitur anti-curang. Jangan pindah tab atau keluar dari layar penuh!</strong></p>
+    <p>Masukkan nama dan kelasmu sebelum memulai kuis.<br><strong style="color: var(--danger)">PERINGATAN: Kuis ini dilengkapi fitur anti-curang. Menekan ESC / Pindah Tab sebanyak 2 kali akan memblokir akses Anda secara permanen!</strong></p>
     <div class="field">
       <label>Nama Lengkap</label>
       <input type="text" id="input-name" placeholder="Contoh: Budi Santoso" />
@@ -669,12 +669,40 @@ let answers = new Array(QUESTIONS.length).fill(null);
 let studentName = '', studentClass = '';
 let submitted = false;
 
-// Variabel Kontrol Anti-Contek
+// ── VARIABEL ANTI-CONTEK & PERMANENT BAN ──
 let quizStarted = false;
 let violationCount = 0;
-const MAX_VIOLATIONS = 2; // Batas maksimal kabur (percobaan ke-3 langsung auto-submit)
+const MAX_VIOLATIONS = 2; // Pelanggaran ke-2 langsung LOCKOUT TOTAL!
 
-// Start
+// Pengecekan status blokir saat halaman dibuka / direfresh
+window.addEventListener('DOMContentLoaded', () => {
+  if (localStorage.getItem('quiz_banned') === 'true') {
+    tampilkanLayarBlokir();
+  }
+});
+
+// Fungsi untuk mengganti seluruh isi dokumen menjadi screen pemblokiran hitam
+function tampilkanLayarBlokir() {
+  document.body.innerHTML = `
+    <div style="
+      position: fixed; top:0; left:0; width:100vw; height:100vh; 
+      background-color: #111; color: #C1392B; 
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      font-family: 'DM Sans', sans-serif; text-align:center; padding: 20px; z-index:99999;
+    ">
+      <h1 style="font-family: 'DM Serif Display', serif; font-size: clamp(32px, 6vw, 52px); margin-bottom: 16px; letter-spacing: 0.05em;">AKSES DIBLOKIR</h1>
+      <p style="font-size: 16px; color: #A5A5A0; max-width: 520px; line-height: 1.6; font-weight: 400;">
+        Anda telah dikeluarkan dari kuis dan akses ke situs ini telah dikunci karena melanggar aturan ujian (Membuka tab baru / Keluar dari Fullscreen atau menekan ESC) sebanyak 2 kali.
+      </p>
+      <div style="margin-top: 40px; font-size: 13px; color: #555; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;">
+        Hubungi Guru Pengawas Untuk Menyelesaikan Masalah Ini.
+      </div>
+    </div>
+  `;
+  document.body.style.background = "#111";
+}
+
+// Start button trigger
 document.getElementById('btn-start').addEventListener('click', () => {
   const name = document.getElementById('input-name').value.trim();
   const cls  = document.getElementById('input-class').value.trim();
@@ -682,7 +710,6 @@ document.getElementById('btn-start').addEventListener('click', () => {
   studentName = name;
   studentClass = cls;
   
-  // Aktifkan Fitur Keamanan & Fullscreen
   startProctoring();
 });
 
@@ -721,14 +748,12 @@ function renderQuestion() {
     optsEl.appendChild(div);
   });
 
-  // Progress
   const answered = answers.filter(a => a !== null).length;
   const pct = Math.round((answered / QUESTIONS.length) * 100);
   document.getElementById('prog-label').textContent = `Soal ${currentQ + 1} dari ${QUESTIONS.length}`;
   document.getElementById('prog-pct').textContent = `${pct}% selesai`;
   document.getElementById('progress-fill').style.width = pct + '%';
 
-  // Nav buttons
   document.getElementById('btn-prev').disabled = currentQ === 0;
   const isLast = currentQ === QUESTIONS.length - 1;
   document.getElementById('btn-next').classList.toggle('hidden', isLast);
@@ -751,31 +776,27 @@ document.getElementById('btn-next').addEventListener('click', () => { if (curren
 document.getElementById('btn-submit').addEventListener('click', submitQuiz);
 
 function submitQuiz() {
-  // Matikan proctoring agar saat melihat hasil tidak dianggap curang
   quizStarted = false; 
   
-  // Melepas paksa mode fullscreen secara aman jika masih aktif
   if (document.fullscreenElement) {
     document.exitFullscreen().catch(() => {});
   }
 
-  // Isi jawaban kosong dengan default jika terpaksa ter-submit otomatis karena curang
+  // Jika dipaksa keluar/submit karena curang, isi jawaban kosong dengan -1 (salah)
   answers = answers.map(a => a === null ? -1 : a);
-
   submitted = true;
 
   let correct = 0;
   answers.forEach((a, i) => { if (a === QUESTIONS[i].answer) correct++; });
   const score = Math.round((correct / QUESTIONS.length) * 100);
 
-  // Hide quiz, show result
   document.getElementById('quiz-section').classList.add('hidden');
-  document.getElementById('identity-screen').classList.add('hidden'); // Jaga-jaga jika auto-submit pas awal
+  document.getElementById('identity-screen').classList.add('hidden');
+  
   const resultEl = document.getElementById('result-screen');
   resultEl.classList.remove('hidden');
   resultEl.style.animation = 'fadeUp 0.5s ease both';
 
-  // Fill result
   document.getElementById('res-name').textContent = studentName;
   document.getElementById('res-class').textContent = studentClass;
   document.getElementById('res-score').textContent = score;
@@ -789,7 +810,6 @@ function submitQuiz() {
     verdict.textContent = '📚 Perlu Belajar Lagi'; verdict.className = 'result-verdict tidak-lulus';
   }
 
-  // Animate ring
   const circumference = 2 * Math.PI * 45;
   const offset = circumference - (score / 100) * circumference;
   setTimeout(() => {
@@ -797,7 +817,6 @@ function submitQuiz() {
     if(ring) ring.style.strokeDashoffset = offset;
   }, 100);
 
-  // Review
   const reviewEl = document.getElementById('review-list');
   reviewEl.innerHTML = '';
   QUESTIONS.forEach((q, i) => {
@@ -817,7 +836,6 @@ function submitQuiz() {
     reviewEl.appendChild(div);
   });
 
-  // Save to Google Sheets
   saveResult(studentName, studentClass, score, correct);
 }
 
@@ -852,22 +870,18 @@ async function saveResult(name, kelas, score, correct) {
   }
 }
 
-// ── FUNGSI MODUL ANTI CONTEK (PROCTORING) ──
+// ── IMPLEMENTASI MODUL DETEKSI & BLOKIR ──
 function startProctoring() {
   let elem = document.documentElement;
-  
-  // Mencoba masuk ke mode Fullscreen
   const requestFS = elem.requestFullscreen || elem.mozRequestFullScreen || elem.webkitRequestFullscreen || elem.msRequestFullscreen;
   
   if (requestFS) {
     requestFS.call(elem).then(() => {
-      // Masuk UI Kuis jika sukses fullscreen
       initQuizUI();
-    }).catch((err) => {
-      alert("Gagal masuk mode Fullscreen. Pastikan memberikan izin browser Anda agar bisa mengerjakan kuis.");
+    }).catch(() => {
+      alert("Gagal masuk mode Fullscreen. Izinkan browser Anda melakukan fullscreen untuk memulai kuis.");
     });
   } else {
-    // Jalankan tanpa fullscreen jika browser jadul, tapi deteksi tab tetap jalan
     initQuizUI();
   }
 }
@@ -884,17 +898,10 @@ function showToastWarning(message) {
   const toast = document.getElementById('warning-toast');
   toast.textContent = message;
   toast.style.display = 'block';
-  setTimeout(() => {
-    toast.style.display = 'none';
-  }, 4000);
+  setTimeout(() => { toast.style.display = 'none'; }, 4000);
 }
 
-// 1. Deteksi Keluar Fullscreen
-document.addEventListener('fullscreenchange', handleFullscreenChange);
-document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-
+// Handler Deteksi Pindah/Keluar Layar Fullscreen
 function handleFullscreenChange() {
   if (!quizStarted || submitted) return;
   
@@ -902,14 +909,17 @@ function handleFullscreenChange() {
   
   if (!fsElement) {
     violationCount++;
-    if (violationCount > MAX_VIOLATIONS) {
-      alert("Anda terlalu sering keluar dari mode Fullscreen! Kuis otomatis dikumpulkan.");
+    
+    if (violationCount >= MAX_VIOLATIONS) {
+      // Eksekusi Pemblokiran Permanen
+      localStorage.setItem('quiz_banned', 'true');
       submitQuiz();
+      alert("PELANGGARAN KEDUA! Anda terdeteksi menekan ESC / keluar dari fullscreen lagi. Akses Anda diblokir!");
+      tampilkanLayarBlokir();
     } else {
-      showToastWarning(`Peringatan ${violationCount}/${MAX_VIOLATIONS}: Jangan keluar dari Fullscreen!`);
-      // Paksa masuk kembali setelah konfirmasi klik
+      showToastWarning(`Peringatan ${violationCount}/${MAX_VIOLATIONS}: Jangan menekan ESC atau keluar dari Fullscreen!`);
       setTimeout(() => {
-        alert("Silakan klik OK untuk kembali ke mode Fullscreen.");
+        alert("Peringatan 1: Jangan tinggalkan layar kuis! Klik OK untuk masuk kembali.");
         let elem = document.documentElement;
         const requestFS = elem.requestFullscreen || elem.mozRequestFullScreen || elem.webkitRequestFullscreen || elem.msRequestFullscreen;
         if(requestFS) requestFS.call(elem);
@@ -918,31 +928,33 @@ function handleFullscreenChange() {
   }
 }
 
-// 2. Deteksi Pindah Tab / Minimize Halaman (Visibility API)
+document.addEventListener('fullscreenchange', handleFullscreenChange);
+document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+// Deteksi Pindah Tab / Minimize Aplikasi (Visibility API)
 document.addEventListener("visibilitychange", function() {
   if (!quizStarted || submitted) return;
 
   if (document.hidden) {
     violationCount++;
-    if (violationCount > MAX_VIOLATIONS) {
+    
+    if (violationCount >= MAX_VIOLATIONS) {
+      localStorage.setItem('quiz_banned', 'true');
       submitQuiz();
-      alert("Kuis otomatis dikumpulkan karena Anda terdeteksi membuka tab/aplikasi lain!");
+      alert("PELANGGARAN KEDUA! Anda terdeteksi membuka tab/aplikasi lain. Akses Anda diblokir!");
+      tampilkanLayarBlokir();
     } else {
-      showToastWarning(`Peringatan ${violationCount}/${MAX_VIOLATIONS}: Dilarang membuka tab lain!`);
+      showToastWarning(`Peringatan ${violationCount}/${MAX_VIOLATIONS}: Dilarang berpindah tab!`);
     }
   }
 });
 
-// 3. Blokir Klik Kanan, Copy, dan Paste
-document.addEventListener('contextmenu', event => {
-  if (quizStarted && !submitted) event.preventDefault();
-});
-document.addEventListener('copy', event => {
-  if (quizStarted && !submitted) event.preventDefault();
-});
-document.addEventListener('paste', event => {
-  if (quizStarted && !submitted) event.preventDefault();
-});
+// Blokir Klik Kanan, Copy, dan Paste saat ujian
+document.addEventListener('contextmenu', event => { if (quizStarted && !submitted) event.preventDefault(); });
+document.addEventListener('copy', event => { if (quizStarted && !submitted) event.preventDefault(); });
+document.addEventListener('paste', event => { if (quizStarted && !submitted) event.preventDefault(); });
 </script>
 </body>
 </html>
