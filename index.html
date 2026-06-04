@@ -455,7 +455,7 @@
       animation: spin 0.8s linear infinite;
     }
 
-    /* ── Warnings Floating Alert ── */
+    /* ── Warnings Floating Alert (Toast) ── */
     .warning-toast {
       position: fixed;
       top: 20px;
@@ -703,12 +703,12 @@ let answers = new Array(QUESTIONS.length).fill(null);
 let studentName = '', studentClass = '';
 let submitted = false;
 
-// ── VARIABEL PER-SOAL TIMER ──
+// ── PER-QUESTION TIMER VARIABLES ──
 let timeLeft = 60; 
 let timerInterval = null;
-let timerIsPaused = false; 
+let proctorIntervalIsPaused = false; 
 
-// ── VARIABEL ANTI-CONTEK & PERMANENT BAN ──
+// ── ANTI-CHEAT & PROCTORING VARIABLES ──
 let quizStarted = false;
 let violationCount = 0;
 const MAX_VIOLATIONS = 2;
@@ -775,15 +775,22 @@ function updateDots() {
   });
 }
 
-// ── PERBAIKAN LOGIKA TIMER PER SOAL ──
+// ── FIXED TIMER CORE ──
 function resetAndStartTimer() {
-  clearInterval(timerInterval);
+  // Hapus interval sebelumnya secara total sebelum memulai yang baru
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+  
   timeLeft = 60; 
-  timerIsPaused = false;
   updateTimerUI();
 
   timerInterval = setInterval(() => {
-    if (timerIsPaused || !quizStarted || submitted) return;
+    if (!quizStarted || submitted) {
+      clearInterval(timerInterval);
+      return;
+    }
 
     timeLeft--;
     updateTimerUI();
@@ -816,25 +823,36 @@ function updateTimerUI() {
 }
 
 function handleTimeOut() {
-  // Jika siswa belum menjawab saat waktu habis, paksa beri nilai -1 (kosong/salah)
   if (answers[currentQ] === null) {
     answers[currentQ] = -1; 
   }
 
   if (currentQ < QUESTIONS.length - 1) {
-    // Menggunakan UI toast agar non-blocking dibanding window.alert bawaan
-    showToastWarning("Waktu habis! Otomatis berpindah ke soal berikutnya.");
+    // Menggunakan Toast non-blocking khusus agar tidak memicu deteksi kecurangan ESC
+    showToastNotification("Waktu habis! Otomatis pindah ke soal berikutnya.", 2000);
+    
     setTimeout(() => {
       currentQ++;
-      resetAndStartTimer();
       renderQuestion();
-    }, 1000);
+      resetAndStartTimer(); // Jalankan ulang timer dengan bersih untuk soal baru
+    }, 2000);
   } else {
-    showToastWarning("Waktu habis pada soal terakhir! Mengirim jawaban...");
+    showToastNotification("Waktu habis pada soal terakhir! Mengirim lembar jawaban...", 2000);
     setTimeout(() => {
       submitQuiz();
-    }, 1000);
+    }, 2000);
   }
+}
+
+function showToastNotification(message, duration = 3000) {
+  const toast = document.getElementById('warning-toast');
+  toast.textContent = message;
+  toast.style.background = "var(--ink)"; // Ubah warna info waktu menjadi netral agar tidak menakuti siswa
+  toast.style.display = 'block';
+  setTimeout(() => { 
+    toast.style.display = 'none'; 
+    toast.style.background = "var(--danger)"; // Kembalikan warna merah untuk proctoring asli
+  }, duration);
 }
 
 function renderQuestion() {
@@ -863,8 +881,6 @@ function renderQuestion() {
   const isLast = currentQ === QUESTIONS.length - 1;
   document.getElementById('btn-next').classList.toggle('hidden', isLast);
   document.getElementById('btn-submit').classList.toggle('hidden', !isLast);
-
-  // Perbaikan: Tombol selesai di soal terakhir SELALU AKTIF agar siswa bisa submit kapan saja
   document.getElementById('btn-submit').disabled = false;
 
   updateDots();
@@ -874,7 +890,6 @@ function selectAnswer(i) {
   if (submitted) return;
   answers[currentQ] = i;
   
-  // Mengupdate class 'selected' secara visual tanpa merender ulang total/mengunci tombol submit
   document.querySelectorAll('.option').forEach((el, idx) => {
     el.classList.toggle('selected', idx === i);
   });
@@ -884,16 +899,16 @@ function selectAnswer(i) {
 document.getElementById('btn-prev').addEventListener('click', () => { 
   if (currentQ > 0) { 
     currentQ--; 
-    resetAndStartTimer(); 
     renderQuestion(); 
+    resetAndStartTimer(); 
   } 
 });
 
 document.getElementById('btn-next').addEventListener('click', () => { 
   if (currentQ < QUESTIONS.length - 1) { 
     currentQ++; 
-    resetAndStartTimer(); 
     renderQuestion(); 
+    resetAndStartTimer(); 
   } 
 });
 
@@ -907,7 +922,6 @@ function submitQuiz() {
     document.exitFullscreen().catch(() => {});
   }
 
-  // Isi sisa soal kosong dengan -1 agar terhitung salah
   answers = answers.map(a => a === null ? -1 : a);
   submitted = true;
 
@@ -995,7 +1009,7 @@ async function saveResult(name, kelas, score, correct) {
   }
 }
 
-// ── PROCTORING ENGINE (ANTI CONTEK & FULLSCREEN) ──
+// ── PROCTORING ENGINE (ANTI CONTEK ASLI) ──
 function startProctoring() {
   let elem = document.documentElement;
   const requestFS = elem.requestFullscreen || elem.mozRequestFullScreen || elem.webkitRequestFullscreen || elem.msRequestFullscreen;
@@ -1016,13 +1030,14 @@ function initQuizUI() {
   document.getElementById('identity-screen').classList.add('hidden');
   document.getElementById('quiz-section').classList.remove('hidden');
   buildDots();
-  resetAndStartTimer(); 
   renderQuestion();
+  resetAndStartTimer(); // Mulai timer awal secara aman
 }
 
 function showToastWarning(message) {
   const toast = document.getElementById('warning-toast');
   toast.textContent = message;
+  toast.style.background = "var(--danger)";
   toast.style.display = 'block';
   setTimeout(() => { toast.style.display = 'none'; }, 4000);
 }
@@ -1032,9 +1047,12 @@ function handleFullscreenChange() {
   
   const fsElement = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
   
+  // Jika fokus layar benar-benar hilang karena interaksi siswa keluar layar fullscreen
   if (!fsElement) {
+    if (proctorIntervalIsPaused) return; // Proteksi jika ada dialog internal yang tertahan
+
     violationCount++;
-    timerIsPaused = true; 
+    proctorIntervalIsPaused = true; 
     
     if (violationCount >= MAX_VIOLATIONS) {
       localStorage.setItem('quiz_banned', 'true');
@@ -1049,7 +1067,7 @@ function handleFullscreenChange() {
         const requestFS = elem.requestFullscreen || elem.mozRequestFullScreen || elem.webkitRequestFullscreen || elem.msRequestFullscreen;
         if(requestFS) {
           requestFS.call(elem).then(() => {
-            timerIsPaused = false; 
+            proctorIntervalIsPaused = false; 
           });
         }
       }, 500);
@@ -1067,7 +1085,6 @@ document.addEventListener("visibilitychange", function() {
 
   if (document.hidden) {
     violationCount++;
-    timerIsPaused = true; 
     
     if (violationCount >= MAX_VIOLATIONS) {
       localStorage.setItem('quiz_banned', 'true');
@@ -1076,11 +1093,6 @@ document.addEventListener("visibilitychange", function() {
       tampilkanLayarBlokir();
     } else {
       showToastWarning(`Peringatan ${violationCount}/${MAX_VIOLATIONS}: Dilarang berpindah tab!`);
-      setTimeout(() => { if(!document.hidden) timerIsPaused = false; }, 500);
-    }
-  } else {
-    if (quizStarted && !submitted && violationCount < MAX_VIOLATIONS) {
-      timerIsPaused = false;
     }
   }
 });
