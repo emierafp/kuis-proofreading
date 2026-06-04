@@ -434,10 +434,28 @@
       animation: spin 0.8s linear infinite;
     }
 
+    /* ── Warnings Floating Alert ── */
+    .warning-toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--danger);
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      box-shadow: 0 4px 15px rgba(193, 57, 43, 0.4);
+      z-index: 1000;
+      display: none;
+      animation: fadeDown 0.3s ease;
+    }
+
     /* ── Animations ── */
     @keyframes fadeDown {
-      from { opacity: 0; transform: translateY(-16px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translateY(-16px) translateX(-50%); }
+      to   { opacity: 1; transform: translateY(0) translateX(-50%); }
     }
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(16px); }
@@ -452,33 +470,31 @@
 </head>
 <body>
 
-<!-- Header -->
+<div id="warning-toast" class="warning-toast">Jangan keluar dari halaman kuis!</div>
+
 <div class="header">
   <div class="header-badge">Kuis Business Writing</div>
   <h1>Uji Pemahamanmu</h1>
   <p>Basic & Advanced Proofreading · 10 soal pilihan ganda</p>
 </div>
 
-<!-- Identity Screen -->
 <div class="card" id="identity-screen">
   <div class="identity-screen-inner">
     <div class="identity-icon">✏️</div>
     <h2>Halo, Siapa Kamu?</h2>
-    <p>Masukkan nama dan kelasmu sebelum memulai kuis.</p>
+    <p>Masukkan nama dan kelasmu sebelum memulai kuis.<br><strong style="color: var(--danger)">PERINGATAN: Kuis ini dilengkapi fitur anti-curang. Jangan pindah tab atau keluar dari layar penuh!</strong></p>
     <div class="field">
       <label>Nama Lengkap</label>
       <input type="text" id="input-name" placeholder="Contoh: Budi Santoso" />
       <label>Kelas</label>
       <input type="text" id="input-class" placeholder="Contoh: XII IPA 1" />
     </div>
-    <button class="btn btn-primary" id="btn-start">Mulai Kuis →</button>
+    <button class="btn btn-primary" id="btn-start">Mulai Kuis & Aktifkan Fullscreen →</button>
   </div>
 </div>
 
-<!-- Quiz Section -->
 <div id="quiz-section" class="hidden">
 
-  <!-- Progress -->
   <div class="progress-wrap">
     <div class="progress-meta">
       <span id="prog-label">Soal 1 dari 10</span>
@@ -487,10 +503,8 @@
     <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
   </div>
 
-  <!-- Question Dots -->
   <div class="q-dots" id="q-dots"></div>
 
-  <!-- Question Card -->
   <div class="card" id="question-card">
     <div class="q-number" id="q-number">Soal 1</div>
     <div class="q-text" id="q-text"></div>
@@ -504,7 +518,6 @@
 
 </div>
 
-<!-- Result Screen -->
 <div class="card hidden" id="result-screen">
   <div class="result-hero">
     <div class="score-ring">
@@ -541,7 +554,6 @@
   <div id="review-list"></div>
 </div>
 
-<!-- Saving Bar -->
 <div class="saving-bar" id="saving-bar">
   <div class="saving-spinner" id="saving-spinner"></div>
   <span id="saving-text">Menyimpan nilai...</span>
@@ -657,6 +669,11 @@ let answers = new Array(QUESTIONS.length).fill(null);
 let studentName = '', studentClass = '';
 let submitted = false;
 
+// Variabel Kontrol Anti-Contek
+let quizStarted = false;
+let violationCount = 0;
+const MAX_VIOLATIONS = 2; // Batas maksimal kabur (percobaan ke-3 langsung auto-submit)
+
 // Start
 document.getElementById('btn-start').addEventListener('click', () => {
   const name = document.getElementById('input-name').value.trim();
@@ -664,10 +681,9 @@ document.getElementById('btn-start').addEventListener('click', () => {
   if (!name || !cls) { alert('Nama dan kelas wajib diisi!'); return; }
   studentName = name;
   studentClass = cls;
-  document.getElementById('identity-screen').classList.add('hidden');
-  document.getElementById('quiz-section').classList.remove('hidden');
-  buildDots();
-  renderQuestion();
+  
+  // Aktifkan Fitur Keamanan & Fullscreen
+  startProctoring();
 });
 
 function buildDots() {
@@ -735,8 +751,17 @@ document.getElementById('btn-next').addEventListener('click', () => { if (curren
 document.getElementById('btn-submit').addEventListener('click', submitQuiz);
 
 function submitQuiz() {
-  const allAnswered = answers.every(a => a !== null);
-  if (!allAnswered) { alert('Jawab semua soal terlebih dahulu!'); return; }
+  // Matikan proctoring agar saat melihat hasil tidak dianggap curang
+  quizStarted = false; 
+  
+  // Melepas paksa mode fullscreen secara aman jika masih aktif
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => {});
+  }
+
+  // Isi jawaban kosong dengan default jika terpaksa ter-submit otomatis karena curang
+  answers = answers.map(a => a === null ? -1 : a);
+
   submitted = true;
 
   let correct = 0;
@@ -745,6 +770,7 @@ function submitQuiz() {
 
   // Hide quiz, show result
   document.getElementById('quiz-section').classList.add('hidden');
+  document.getElementById('identity-screen').classList.add('hidden'); // Jaga-jaga jika auto-submit pas awal
   const resultEl = document.getElementById('result-screen');
   resultEl.classList.remove('hidden');
   resultEl.style.animation = 'fadeUp 0.5s ease both';
@@ -767,7 +793,8 @@ function submitQuiz() {
   const circumference = 2 * Math.PI * 45;
   const offset = circumference - (score / 100) * circumference;
   setTimeout(() => {
-    document.getElementById('ring-fill').style.strokeDashoffset = offset;
+    const ring = document.getElementById('ring-fill');
+    if(ring) ring.style.strokeDashoffset = offset;
   }, 100);
 
   // Review
@@ -783,7 +810,7 @@ function submitQuiz() {
       <div class="review-q">${i+1}. ${q.q}</div>
       <div class="review-answers">
         <span class="review-tag ${isCorrect ? 'user-correct' : 'user-wrong'}">
-          Jawabanmu: ${letters[userAns]} — ${q.options[userAns]}
+          Jawabanmu: ${userAns === -1 ? 'Tidak Dijawab' : letters[userAns] + ' — ' + q.options[userAns]}
         </span>
         ${!isCorrect ? `<span class="review-tag correct-ans">Jawaban benar: ${letters[correct_ans]} — ${q.options[correct_ans]}</span>` : ''}
       </div>`;
@@ -824,6 +851,98 @@ async function saveResult(name, kelas, score, correct) {
     setTimeout(() => bar.classList.remove('show'), 4000);
   }
 }
+
+// ── FUNGSI MODUL ANTI CONTEK (PROCTORING) ──
+function startProctoring() {
+  let elem = document.documentElement;
+  
+  // Mencoba masuk ke mode Fullscreen
+  const requestFS = elem.requestFullscreen || elem.mozRequestFullScreen || elem.webkitRequestFullscreen || elem.msRequestFullscreen;
+  
+  if (requestFS) {
+    requestFS.call(elem).then(() => {
+      // Masuk UI Kuis jika sukses fullscreen
+      initQuizUI();
+    }).catch((err) => {
+      alert("Gagal masuk mode Fullscreen. Pastikan memberikan izin browser Anda agar bisa mengerjakan kuis.");
+    });
+  } else {
+    // Jalankan tanpa fullscreen jika browser jadul, tapi deteksi tab tetap jalan
+    initQuizUI();
+  }
+}
+
+function initQuizUI() {
+  quizStarted = true;
+  document.getElementById('identity-screen').classList.add('hidden');
+  document.getElementById('quiz-section').classList.remove('hidden');
+  buildDots();
+  renderQuestion();
+}
+
+function showToastWarning(message) {
+  const toast = document.getElementById('warning-toast');
+  toast.textContent = message;
+  toast.style.display = 'block';
+  setTimeout(() => {
+    toast.style.display = 'none';
+  }, 4000);
+}
+
+// 1. Deteksi Keluar Fullscreen
+document.addEventListener('fullscreenchange', handleFullscreenChange);
+document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+function handleFullscreenChange() {
+  if (!quizStarted || submitted) return;
+  
+  const fsElement = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+  
+  if (!fsElement) {
+    violationCount++;
+    if (violationCount > MAX_VIOLATIONS) {
+      alert("Anda terlalu sering keluar dari mode Fullscreen! Kuis otomatis dikumpulkan.");
+      submitQuiz();
+    } else {
+      showToastWarning(`Peringatan ${violationCount}/${MAX_VIOLATIONS}: Jangan keluar dari Fullscreen!`);
+      // Paksa masuk kembali setelah konfirmasi klik
+      setTimeout(() => {
+        alert("Silakan klik OK untuk kembali ke mode Fullscreen.");
+        let elem = document.documentElement;
+        const requestFS = elem.requestFullscreen || elem.mozRequestFullScreen || elem.webkitRequestFullscreen || elem.msRequestFullscreen;
+        if(requestFS) requestFS.call(elem);
+      }, 500);
+    }
+  }
+}
+
+// 2. Deteksi Pindah Tab / Minimize Halaman (Visibility API)
+document.addEventListener("visibilitychange", function() {
+  if (!quizStarted || submitted) return;
+
+  if (document.hidden) {
+    violationCount++;
+    if (violationCount > MAX_VIOLATIONS) {
+      submitQuiz();
+      alert("Kuis otomatis dikumpulkan karena Anda terdeteksi membuka tab/aplikasi lain!");
+    } else {
+      showToastWarning(`Peringatan ${violationCount}/${MAX_VIOLATIONS}: Dilarang membuka tab lain!`);
+    }
+  }
+});
+
+// 3. Blokir Klik Kanan, Copy, dan Paste
+document.addEventListener('contextmenu', event => {
+  if (quizStarted && !submitted) event.preventDefault();
+});
+document.addEventListener('copy', event => {
+  if (quizStarted && !submitted) event.preventDefault();
+});
+document.addEventListener('paste', event => {
+  if (quizStarted && !submitted) event.preventDefault();
+});
 </script>
 </body>
 </html>
