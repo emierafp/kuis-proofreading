@@ -174,7 +174,7 @@
       transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* Timer Style Badge */
+    /* Timer Badge */
     .timer-badge {
       display: inline-flex;
       align-items: center;
@@ -704,16 +704,15 @@ let studentName = '', studentClass = '';
 let submitted = false;
 
 // ── VARIABEL PER-SOAL TIMER ──
-let timeLeft = 60; // Batasan 1 menit (60 detik) per soal
+let timeLeft = 60; 
 let timerInterval = null;
-let timerIsPaused = false; // Mem-pause waktu saat dialog modal alert muncul
+let timerIsPaused = false; 
 
 // ── VARIABEL ANTI-CONTEK & PERMANENT BAN ──
 let quizStarted = false;
 let violationCount = 0;
 const MAX_VIOLATIONS = 2;
 
-// Pengecekan status blokir saat halaman dibuka
 window.addEventListener('DOMContentLoaded', () => {
   if (localStorage.getItem('quiz_banned') === 'true') {
     tampilkanLayarBlokir();
@@ -721,7 +720,7 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function tampilkanLayarBlokir() {
-  clearInterval(timerInterval); // Amankan timer jika berjalan
+  clearInterval(timerInterval); 
   document.body.innerHTML = `
     <div style="
       position: fixed; top:0; left:0; width:100vw; height:100vh; 
@@ -741,7 +740,6 @@ function tampilkanLayarBlokir() {
   document.body.style.background = "#111";
 }
 
-// Start button trigger
 document.getElementById('btn-start').addEventListener('click', () => {
   const name = document.getElementById('input-name').value.trim();
   const cls  = document.getElementById('input-class').value.trim();
@@ -759,8 +757,12 @@ function buildDots() {
     const d = document.createElement('button');
     d.className = 'q-dot' + (i === 0 ? ' active' : '');
     d.textContent = i + 1;
-    // Blokir navigasi lompat soal secara manual jika ingin membatasi siswa kembali ke belakang
-    d.addEventListener('click', () => { currentQ = i; resetAndStartTimer(); renderQuestion(); });
+    d.addEventListener('click', () => { 
+      if (submitted) return;
+      currentQ = i; 
+      resetAndStartTimer(); 
+      renderQuestion(); 
+    });
     wrap.appendChild(d);
   });
 }
@@ -768,15 +770,15 @@ function buildDots() {
 function updateDots() {
   document.querySelectorAll('.q-dot').forEach((d, i) => {
     d.className = 'q-dot';
-    if (answers[i] !== null) d.classList.add('answered');
+    if (answers[i] !== null && answers[i] !== -1) d.classList.add('answered');
     if (i === currentQ) d.classList.add('active');
   });
 }
 
-// ── LOGIKA MODUL TIMER PER SOAL ──
+// ── PERBAIKAN LOGIKA TIMER PER SOAL ──
 function resetAndStartTimer() {
   clearInterval(timerInterval);
-  timeLeft = 60; // Reset ke 60 detik setiap ganti soal
+  timeLeft = 60; 
   timerIsPaused = false;
   updateTimerUI();
 
@@ -796,6 +798,7 @@ function resetAndStartTimer() {
 function updateTimerUI() {
   const clockEl = document.getElementById('timer-clock');
   const badgeEl = document.getElementById('timer-badge');
+  if(!clockEl || !badgeEl) return;
   
   let minutes = Math.floor(timeLeft / 60);
   let seconds = timeLeft % 60;
@@ -805,7 +808,6 @@ function updateTimerUI() {
   
   clockEl.textContent = `${minutes}:${seconds}`;
 
-  // Berikan efek merah berkedip saat waktu tersisa di bawah 10 detik
   if (timeLeft <= 10) {
     badgeEl.classList.add('warning');
   } else {
@@ -814,19 +816,24 @@ function updateTimerUI() {
 }
 
 function handleTimeOut() {
-  // Jika belum memilih jawaban, biarkan nilainya null/kosong sementara
+  // Jika siswa belum menjawab saat waktu habis, paksa beri nilai -1 (kosong/salah)
   if (answers[currentQ] === null) {
-    answers[currentQ] = -1; // -1 Menandakan kehabisan waktu / tidak dijawab
+    answers[currentQ] = -1; 
   }
 
   if (currentQ < QUESTIONS.length - 1) {
-    alert("Waktu habis untuk soal ini! Kuis otomatis beralih ke soal berikutnya.");
-    currentQ++;
-    resetAndStartTimer();
-    renderQuestion();
+    // Menggunakan UI toast agar non-blocking dibanding window.alert bawaan
+    showToastWarning("Waktu habis! Otomatis berpindah ke soal berikutnya.");
+    setTimeout(() => {
+      currentQ++;
+      resetAndStartTimer();
+      renderQuestion();
+    }, 1000);
   } else {
-    alert("Waktu habis pada soal terakhir! Kuis Anda akan otomatis dikirimkan.");
-    submitQuiz();
+    showToastWarning("Waktu habis pada soal terakhir! Mengirim jawaban...");
+    setTimeout(() => {
+      submitQuiz();
+    }, 1000);
   }
 }
 
@@ -845,18 +852,19 @@ function renderQuestion() {
     optsEl.appendChild(div);
   });
 
-  const answered = answers.filter(a => a !== null && a !== -1).length;
+  const answered = answers.filter(a => a !== null).length;
   const pct = Math.round((answered / QUESTIONS.length) * 100);
   document.getElementById('prog-label').textContent = `Soal ${currentQ + 1} dari ${QUESTIONS.length}`;
   document.getElementById('prog-pct').textContent = `${pct}% selesai`;
   document.getElementById('progress-fill').style.width = pct + '%';
 
   document.getElementById('btn-prev').disabled = currentQ === 0;
+  
   const isLast = currentQ === QUESTIONS.length - 1;
   document.getElementById('btn-next').classList.toggle('hidden', isLast);
   document.getElementById('btn-submit').classList.toggle('hidden', !isLast);
 
-  // Tombol submit selalu aktif di soal terakhir agar siswa bisa kirim kapan pun sebelum 1 menit habis
+  // Perbaikan: Tombol selesai di soal terakhir SELALU AKTIF agar siswa bisa submit kapan saja
   document.getElementById('btn-submit').disabled = false;
 
   updateDots();
@@ -865,7 +873,12 @@ function renderQuestion() {
 function selectAnswer(i) {
   if (submitted) return;
   answers[currentQ] = i;
-  renderQuestion();
+  
+  // Mengupdate class 'selected' secara visual tanpa merender ulang total/mengunci tombol submit
+  document.querySelectorAll('.option').forEach((el, idx) => {
+    el.classList.toggle('selected', idx === i);
+  });
+  updateDots();
 }
 
 document.getElementById('btn-prev').addEventListener('click', () => { 
@@ -888,13 +901,13 @@ document.getElementById('btn-submit').addEventListener('click', submitQuiz);
 
 function submitQuiz() {
   quizStarted = false; 
-  clearInterval(timerInterval); // Hentikan hitung mundur total
+  clearInterval(timerInterval); 
   
   if (document.fullscreenElement) {
     document.exitFullscreen().catch(() => {});
   }
 
-  // Isi semua sisa soal yang belum sempat disentuh dengan -1 (salah)
+  // Isi sisa soal kosong dengan -1 agar terhitung salah
   answers = answers.map(a => a === null ? -1 : a);
   submitted = true;
 
@@ -982,7 +995,7 @@ async function saveResult(name, kelas, score, correct) {
   }
 }
 
-// ── IMPLEMENTASI MODUL DETEKSI & BLOKIR ──
+// ── PROCTORING ENGINE (ANTI CONTEK & FULLSCREEN) ──
 function startProctoring() {
   let elem = document.documentElement;
   const requestFS = elem.requestFullscreen || elem.mozRequestFullScreen || elem.webkitRequestFullscreen || elem.msRequestFullscreen;
@@ -1003,7 +1016,7 @@ function initQuizUI() {
   document.getElementById('identity-screen').classList.add('hidden');
   document.getElementById('quiz-section').classList.remove('hidden');
   buildDots();
-  resetAndStartTimer(); // Jalankan timer pertama kali kuis di-render
+  resetAndStartTimer(); 
   renderQuestion();
 }
 
@@ -1014,7 +1027,6 @@ function showToastWarning(message) {
   setTimeout(() => { toast.style.display = 'none'; }, 4000);
 }
 
-// Handler Deteksi Pindah/Keluar Layar Fullscreen
 function handleFullscreenChange() {
   if (!quizStarted || submitted) return;
   
@@ -1022,7 +1034,7 @@ function handleFullscreenChange() {
   
   if (!fsElement) {
     violationCount++;
-    timerIsPaused = true; // Hentikan waktu agar tidak merugikan siswa saat memproses dialog peringatan
+    timerIsPaused = true; 
     
     if (violationCount >= MAX_VIOLATIONS) {
       localStorage.setItem('quiz_banned', 'true');
@@ -1037,7 +1049,7 @@ function handleFullscreenChange() {
         const requestFS = elem.requestFullscreen || elem.mozRequestFullScreen || elem.webkitRequestFullscreen || elem.msRequestFullscreen;
         if(requestFS) {
           requestFS.call(elem).then(() => {
-            timerIsPaused = false; // Lanjutkan hitung mundur setelah fullscreen aktif kembali
+            timerIsPaused = false; 
           });
         }
       }, 500);
@@ -1050,7 +1062,6 @@ document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
 document.addEventListener('mozfullscreenchange', handleFullscreenChange);
 document.addEventListener('MSFullscreenChange', handleFullscreenChange);
 
-// Deteksi Pindah Tab / Minimize Aplikasi (Visibility API)
 document.addEventListener("visibilitychange", function() {
   if (!quizStarted || submitted) return;
 
@@ -1065,18 +1076,15 @@ document.addEventListener("visibilitychange", function() {
       tampilkanLayarBlokir();
     } else {
       showToastWarning(`Peringatan ${violationCount}/${MAX_VIOLATIONS}: Dilarang berpindah tab!`);
-      // Lanjutkan timer jika mereka langsung kembali dengan cepat
       setTimeout(() => { if(!document.hidden) timerIsPaused = false; }, 500);
     }
   } else {
-    // Jika siswa kembali ke halaman kuis secara damai
     if (quizStarted && !submitted && violationCount < MAX_VIOLATIONS) {
       timerIsPaused = false;
     }
   }
 });
 
-// Blokir Klik Kanan, Copy, dan Paste saat ujian
 document.addEventListener('contextmenu', event => { if (quizStarted && !submitted) event.preventDefault(); });
 document.addEventListener('copy', event => { if (quizStarted && !submitted) event.preventDefault(); });
 document.addEventListener('paste', event => { if (quizStarted && !submitted) event.preventDefault(); });
